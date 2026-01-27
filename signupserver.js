@@ -1,62 +1,117 @@
+require("dotenv").config(); // must be first
+
 const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors");
 const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("./cloudinary");
-const User = require("./models/user");
+const cors = require("cors");
+const path = require("path");
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: 'dtjzkj0ka',
+  api_key: '456536189196594',
+  api_secret: 'tiGoN4rbf9WPFe-Ml4UKex5mHhI'
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
-// Multer storage for Cloudinary
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "receipts",
-    allowed_formats: ["jpg", "jpeg", "png"],
-    public_id: (req, file) => Date.now() + "-" + file.originalname.replace(/\s+/g, "")
-  }
+// MongoDB connection
+mongoose.connect("mongodb+srv://jcayabyab524_db_user:joelpogi123@testdb.zirvvwn.mongodb.net/test")
+    .then(() => console.log("MongoDB Connected"))
+    .catch(err => console.error(err));
+
+// Multer image upload
+const storage = multer.diskStorage({
+    destination: "uploads/",
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname);
+    }
 });
 
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB max
+const upload = multer({ dest: 'uploads/' }); // Temporary folder
 
-// Connect MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error(err));
+// User model
+const User = require("./models/user");
 
-// Routes
+// Register API
 app.post("/register", upload.single("receipt"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "Receipt image required" });
+    try {
+        // 1. Upload image to Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "my_project_images",
+        });
 
-    const user = new User({
-      name: req.body.name,
-      amount: req.body.amount,
-      plan: req.body.plan,
-      recommend: req.body.recommend,
-      receipt: req.file.path // Cloudinary URL
-    });
+        console.log("Cloudinary URL:", result.secure_url);
 
-    await user.save();
-    res.json({ success: true });
+        // 2. Create user with Cloudinary URL
+        const user = new User({
+            name: req.body.name,
+            amount: req.body.amount,
+            plan: req.body.plan,
+            recommend: req.body.recommend,
+            receipt: result.secure_url, // ✅ SAVE URL HERE
+            receiptPublicId: result.public_id // Save public_id for deletion
+        });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Registration failed" });
-  }
+        // 3. Save to database
+        await user.save();
+
+        // 4. Respond once
+        res.json({
+            success: true,
+            imageUrl: result.secure_url
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Registration failed" });
+    }
 });
 
+
+// Get all registered users (ADMIN)
 app.get("/admin/users", async (req, res) => {
-  try {
-    const users = await User.find().sort({ createdAt: -1 });
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
+    try {
+        const users = await User.find().sort({ createdAt: -1 });
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch users" });
+    }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Delete user by ID
+app.delete("/admin/users/:id", async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Find user first
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Delete from Cloudinary using public_id
+        if (user.receiptPublicId) {
+            await cloudinary.uploader.destroy(user.receiptPublicId);
+        }
+
+        // Optional: delete from Cloudinary if you stored public_id
+        // await cloudinary.uploader.destroy(user.receiptPublicId);
+
+        // Delete from MongoDB
+        await User.findByIdAndDelete(userId);
+
+        res.json({ success: true, message: "User deleted" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to delete user" });
+    }
+});
+
+
+app.listen(3000, () => {
+    console.log("Server running on http://localhost:3000");
+});

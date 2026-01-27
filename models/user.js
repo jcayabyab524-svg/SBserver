@@ -1,11 +1,13 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  amount: { type: String, required: true },
-  plan: { type: String, required: true },
-  recommend: { type: String },
-  receipt: { type: String, required: true }
+    name: String,
+    amount: Number,
+    plan: String,
+    recommend: String,
+    receipt: String, // Cloudinary URL
+    receiptPublicId: String    // Cloudinary public_id
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);
+
