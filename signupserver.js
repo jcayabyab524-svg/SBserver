@@ -20,7 +20,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect("mongodb+srv://jcayabyab524_db_user:joelpogi123@testdb.zirvvwn.mongodb.net/test")
     .then(() => console.log("MongoDB Connected"))
     .catch(err => console.error(err));
 
