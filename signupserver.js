@@ -8,9 +8,9 @@ const path = require("path");
 const cloudinary = require("cloudinary").v2;
 
 cloudinary.config({
-  cloud_name: 'dtjzkj0ka',
-  api_key: '456536189196594',
-  api_secret: 'tiGoN4rbf9WPFe-Ml4UKex5mHhI'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET'
 });
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
 // MongoDB connection
-mongoose.connect("mongodb+srv://jcayabyab524_db_user:joelpogi123@testdb.zirvvwn.mongodb.net/test")
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("MongoDB Connected"))
     .catch(err => console.error(err));
 
