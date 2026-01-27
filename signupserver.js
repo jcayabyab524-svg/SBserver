@@ -6,6 +6,7 @@ const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 const cloudinary = require("cloudinary").v2;
+const PORT = process.env.PORT || 10000;
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -112,6 +113,6 @@ app.delete("/admin/users/:id", async (req, res) => {
 });
 
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+app.listen(PORT, () => {
+    console.log("Server running on http://renderhosting:10000");
 });
