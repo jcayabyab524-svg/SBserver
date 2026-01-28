@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
     name: String,
-    amount: Number,
+    amount: String,
     plan: String,
     recommend: String,
     receipt: String, // Cloudinary URL
